@@ -1,6 +1,7 @@
 from room import Room
 from player import Player
 from world import World
+from util import Queue
 
 import random
 
@@ -21,7 +22,97 @@ player = Player("Name", world.startingRoom)
 
 
 # FILL THIS IN
-traversalPath = ['n', 's']
+# Fill this out
+
+# do dft to find dead end
+# create traversal graph as we go
+# run bft to find next unexplored room
+# rinse repeat
+
+traversalPath = []
+traversalGraph = {}
+
+def addCurrentRoomToGraph():
+    tmp = {}
+    if player.currentRoom.id not in traversalGraph:
+        for i in player.currentRoom.getExits():
+            tmp[i] = "?"
+        traversalGraph[player.currentRoom.id] = tmp
+
+def findUnexploredRoom(): #THIS IS OUR BFT ROUTE
+    q = Queue()
+
+    q.enqueue([player.currentRoom.id])
+
+
+
+    while q.size():
+        path = q.dequeue()
+        room = path[-1]
+
+        for i in traversalGraph[room]:
+            if traversalGraph[room][i] == "?":
+                return path
+            else:
+                path_copy = path[:]
+                path_copy.append(traversalGraph[room][i])
+                q.enqueue(path_copy)
+
+    return None
+
+def movePlayerToDeadEnd(): #THIS IS OUR DFT ROUTE
+    addCurrentRoomToGraph()
+
+    startRoom = player.currentRoom.id
+    startExits = player.currentRoom.getExits()
+
+    nonExplored = []
+    for i in startExits:
+        if traversalGraph[startRoom][i] == "?":
+            nonExplored.append(i)
+
+
+    if len(nonExplored) < 1:
+        return
+    else:
+        direction = nonExplored[int(random.uniform(0, len(nonExplored) - 1))]
+
+        player.travel(direction)
+        addCurrentRoomToGraph()
+        traversalGraph[startRoom][direction] = player.currentRoom.id
+        
+        if direction == "n":
+            traversalGraph[player.currentRoom.id]["s"] = startRoom
+        elif direction == "e":
+            traversalGraph[player.currentRoom.id]["w"] = startRoom
+        elif direction == "s":
+            traversalGraph[player.currentRoom.id]["n"] = startRoom
+        elif direction == "w":
+            traversalGraph[player.currentRoom.id]["e"] = startRoom
+
+        traversalPath.append(direction)
+        movePlayerToDeadEnd()
+
+
+def traverseThisMap():
+    movePlayerToDeadEnd()
+    unexploredPath = findUnexploredRoom()
+    if unexploredPath == None:
+        return
+    else:
+        for i in range(len(unexploredPath)):
+            currentRoom = unexploredPath[i]
+            if player.currentRoom.id == unexploredPath[-1]:
+                break
+            for j in traversalGraph[currentRoom]:
+                if traversalGraph[currentRoom][j] == unexploredPath[i + 1]:
+                    player.travel(j)
+                    traversalPath.append(j)
+                    addCurrentRoomToGraph()
+    traverseThisMap()
+
+addCurrentRoomToGraph()
+traverseThisMap()
 
 
 # TRAVERSAL TEST
